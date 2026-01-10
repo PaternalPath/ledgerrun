@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "Core DCA",
+  "targets": [
+    { "symbol": "VTI", "targetWeight": 0.7 },
+    { "symbol": "VXUS", "targetWeight": 0.3 }
+  ],
+  "cashBufferPct": 0.0,
+  "minInvestAmountUsd": 1,
+  "maxInvestAmountUsd": 10000,
+  "minOrderUsd": 1,
+  "maxOrders": 10,
+  "drift": { "kind": "band", "maxAbsPct": 0.03 },
+  "allowMissingPrices": false
+}
