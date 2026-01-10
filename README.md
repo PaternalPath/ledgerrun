@@ -244,6 +244,83 @@ When using the `run` command (not `plan` or dry-run `execute`), LedgerRun persis
 - `planHash`: Hash of the allocation plan (for detecting plan changes)
 - `executed`: Whether orders were actually executed
 - `execution`: Details about executed orders (only present if executed=true)
+- `metrics`: Run metrics including duration and event timeline
+
+### Observability & Guardrails
+
+LedgerRun M5 includes built-in observability and safety guardrails to provide transparency and prevent unsafe trading behavior.
+
+#### Observability Features
+
+**Structured Logging:**
+- Log levels: DEBUG, INFO, WARN, ERROR
+- Structured log format (JSON or human-readable)
+- Event tracking throughout execution lifecycle
+- Set via environment variable: `LOG_FORMAT=json` for JSON output
+
+**Run Metrics:**
+- Execution duration tracking
+- Event timeline with timestamps
+- Performance monitoring
+- All metrics saved to run metadata
+
+**Example metrics** (from run metadata):
+```json
+{
+  "metrics": {
+    "durationMs": 11,
+    "events": [
+      { "name": "policy_load_start", "timestamp": "2026-01-10T14:27:29.857Z", "elapsed": 1 },
+      { "name": "policy_load_complete", "timestamp": "2026-01-10T14:27:29.861Z", "elapsed": 5 },
+      { "name": "allocation_start", "timestamp": "2026-01-10T14:27:29.863Z", "elapsed": 7 },
+      { "name": "allocation_complete", "timestamp": "2026-01-10T14:27:29.865Z", "elapsed": 9 },
+      { "name": "safety_checks_start", "timestamp": "2026-01-10T14:27:29.865Z", "elapsed": 9 },
+      { "name": "safety_checks_complete", "timestamp": "2026-01-10T14:27:29.866Z", "elapsed": 10 },
+      { "name": "orders_executed", "timestamp": "2026-01-10T14:27:29.867Z", "elapsed": 11 }
+    ]
+  }
+}
+```
+
+#### Guardrails (Safety Checks)
+
+LedgerRun automatically runs safety checks before order execution. Currently, these checks produce warnings but do not block execution (blocking behavior coming in future release).
+
+**Position Size Limits:**
+- Prevents any single position from exceeding a % of total portfolio
+- Default: 50% max position size
+- Configurable via guardrails parameter
+
+**Daily Spend Limits:**
+- Tracks cumulative spending across all runs in a single day
+- Default: $10,000 daily limit
+- Prevents runaway spending
+
+**Large Order Warnings:**
+- Warns when an order exceeds a threshold % of portfolio
+- Default: 10% threshold
+- Helps catch unexpected large orders
+
+**Policy Validation:**
+- Validates policy settings for safety issues
+- Warns about concentrated positions, high limits, etc.
+- Runs automatically on every execution
+
+**Example guardrails output:**
+```
+⚠️  Safety Warning: Large order detected: VTI $676.00 (40.2% of portfolio)
+🚨 Safety Check Failed: Daily spend limit exceeded: $11000.00 (limit: $10000.00)
+```
+
+**Guardrails Configuration:**
+```javascript
+// Example (for advanced users - currently requires code modification)
+guardrails: {
+  maxPositionPct: 0.5,        // 50% max per position
+  dailySpendLimit: 10000,     // $10k daily limit
+  largeOrderThreshold: 0.1    // 10% warning threshold
+}
+```
 
 ### Architecture
 
@@ -256,22 +333,29 @@ ledgerrun/
 │   │       └── validate.js    # Policy & snapshot validation
 │   └── orchestrator/      # Execution orchestration
 │       └── src/
-│           ├── run.js         # Main run loop (with idempotency)
-│           └── persistence.js # Run metadata & idempotency
+│           ├── run.js         # Main run loop (with observability)
+│           ├── persistence.js # Run metadata & idempotency
+│           ├── logger.js      # Structured logging
+│           ├── guardrails.js  # Safety checks & limits
+│           └── metrics.js     # Run metrics tracking
 ├── apps/
 │   └── api/               # CLI application
 │       └── src/
 │           └── cli.js         # Command-line interface
-├── tests/                 # Test suites
+├── tests/                 # Test suites (42 tests, all passing)
 │   ├── core/
+│   │   └── allocate.test.js
 │   └── orchestrator/
 │       ├── run.test.js
 │       ├── persistence.test.js
-│       └── idempotency.test.js
+│       ├── idempotency.test.js
+│       ├── guardrails.test.js
+│       ├── logger.test.js
+│       └── metrics.test.js
 ├── policies/              # Policy definitions
 │   └── core.json
 └── runs/                  # Run metadata (auto-created)
-    └── *.json
+    └── *.json             # Includes metrics & safety check results
 ```
 
 ---

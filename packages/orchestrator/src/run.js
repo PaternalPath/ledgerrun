@@ -8,6 +8,9 @@ import {
   loadRunMetadata,
   runExists,
 } from "./persistence.js";
+import { createLogger } from "./logger.js";
+import { runSafetyChecks } from "./guardrails.js";
+import { RunMetrics } from "./metrics.js";
 
 /**
  * Run once: load policy, fetch snapshot, compute allocation plan, and optionally execute.
@@ -103,6 +106,8 @@ export async function runOnce({ policyPath, broker, dryRun = true, execute = fal
  * @param {string} options.granularity - Idempotency granularity: "daily" or "hourly" (default: "daily")
  * @param {string} options.runsDir - Directory to store run metadata (default: "./runs")
  * @param {boolean} options.skipIdempotency - Skip idempotency check (default: false)
+ * @param {Object} options.guardrails - Guardrails configuration { maxPositionPct, dailySpendLimit, largeOrderThreshold }
+ * @param {string} options.logLevel - Log level: "DEBUG", "INFO", "WARN", "ERROR" (default: "INFO")
  * @returns {Promise<Object>} The allocation plan result with metadata
  */
 export async function runWithIdempotency({
@@ -114,20 +119,31 @@ export async function runWithIdempotency({
   granularity = "daily",
   runsDir = "./runs",
   skipIdempotency = false,
+  guardrails = {},
+  logLevel = "INFO",
 }) {
   const log = silent ? () => {} : console.log;
+  const logger = createLogger({ level: logLevel, silent });
+  const metrics = new RunMetrics();
 
-  // Load policy for idempotency key generation
-  const policyData = await readFile(policyPath, "utf-8");
-  const policy = JSON.parse(policyData);
+  try {
+    // Load policy for idempotency key generation
+    logger.info("Loading policy", { policyPath });
+    metrics.event("policy_load_start");
 
-  // Generate idempotency key
-  const dateKey = getDateKey(new Date(), granularity);
-  const idempotencyKey = generateIdempotencyKey(policy, dateKey);
+    const policyData = await readFile(policyPath, "utf-8");
+    const policy = JSON.parse(policyData);
 
-  log(`🔑 Idempotency Key: ${idempotencyKey}`);
-  log(`   Granularity: ${granularity}`);
-  log(`   Date Key: ${dateKey}`);
+    metrics.event("policy_load_complete", { policyName: policy.name });
+    logger.info("Policy loaded successfully", { policyName: policy.name, targets: policy.targets.length });
+
+    // Generate idempotency key
+    const dateKey = getDateKey(new Date(), granularity);
+    const idempotencyKey = generateIdempotencyKey(policy, dateKey);
+
+    log(`🔑 Idempotency Key: ${idempotencyKey}`);
+    log(`   Granularity: ${granularity}`);
+    log(`   Date Key: ${dateKey}`);
 
   // Check if run already exists (only for execute mode)
   if (!skipIdempotency && !dryRun && execute) {
@@ -158,66 +174,130 @@ export async function runWithIdempotency({
     log("   ✅ No existing run found - proceeding");
   }
 
-  // Run the allocation
-  const timestamp = new Date().toISOString();
-  const result = await runOnce({
-    policyPath,
-    broker,
-    dryRun,
-    execute,
-    silent,
-  });
+    // Run the allocation
+    logger.info("Starting allocation run", { dryRun, execute });
+    metrics.event("allocation_start");
 
-  // Calculate plan hash
-  const planHash = hashPlan(result.plan);
+    const timestamp = new Date().toISOString();
+    const result = await runOnce({
+      policyPath,
+      broker,
+      dryRun,
+      execute,
+      silent,
+    });
 
-  // Prepare metadata
-  const metadata = {
-    idempotencyKey,
-    timestamp,
-    dateKey,
-    granularity,
-    policyPath,
-    policyName: policy.name,
-    status: result.plan.status,
-    planHash,
-    dryRun,
-    executed: !dryRun && execute,
-    plan: {
+    metrics.event("allocation_complete", { status: result.plan.status, legs: result.plan.legs.length });
+    logger.info("Allocation complete", { status: result.plan.status, plannedSpend: result.plan.plannedSpendUsd });
+
+    // Run safety checks (warnings only for now)
+    if (!dryRun && result.plan.status === "PLANNED") {
+      logger.info("Running safety checks");
+      metrics.event("safety_checks_start");
+
+      // Get snapshot for safety checks
+      const snapshot = await broker.getSnapshot();
+
+      const safetyResult = await runSafetyChecks(result.plan, snapshot, policy, {
+        runsDir,
+        ...guardrails,
+      });
+
+      metrics.event("safety_checks_complete", {
+        safe: safetyResult.safe,
+        blockingCount: safetyResult.blocking.length,
+        warningsCount: safetyResult.warnings.length
+      });
+
+      // Log warnings
+      if (safetyResult.warnings.length > 0) {
+        for (const warning of safetyResult.warnings) {
+          logger.warn("Safety warning", { warning });
+          log(`\n⚠️  Safety Warning: ${warning}`);
+        }
+      }
+
+      // Log blocking issues (informational for now, will block in future version)
+      if (safetyResult.blocking.length > 0) {
+        for (const issue of safetyResult.blocking) {
+          logger.warn("Safety check failed (informational)", { issue });
+          log(`\n🚨 Safety Check Failed: ${issue}`);
+        }
+      }
+
+      if (safetyResult.safe) {
+        logger.info("All safety checks passed");
+      } else {
+        logger.warn("Some safety checks failed", {
+          blockingIssues: safetyResult.blocking.length,
+          warnings: safetyResult.warnings.length
+        });
+      }
+    }
+
+    // Calculate plan hash
+    const planHash = hashPlan(result.plan);
+
+    // Prepare metadata
+    const metricsSummary = metrics.getSummary();
+
+    const metadata = {
+      idempotencyKey,
+      timestamp,
+      dateKey,
+      granularity,
+      policyPath,
+      policyName: policy.name,
       status: result.plan.status,
-      totalValueUsd: result.plan.totalValueUsd,
-      cashUsd: result.plan.cashUsd,
-      investableCashUsd: result.plan.investableCashUsd,
-      plannedSpendUsd: result.plan.plannedSpendUsd,
-      legs: result.plan.legs.map(leg => ({
-        symbol: leg.symbol,
-        notionalUsd: leg.notionalUsd,
-        currentWeight: leg.currentWeight,
-        targetWeight: leg.targetWeight,
-        postBuyEstimatedWeight: leg.postBuyEstimatedWeight,
-        reasonCodes: leg.reasonCodes,
-      })),
-      notes: result.plan.notes,
-    },
-  };
-
-  // Add execution details if executed
-  if (result.execution) {
-    metadata.execution = {
-      ordersPlaced: result.execution.ordersPlaced,
-      orderIds: result.execution.orderIds,
+      planHash,
+      dryRun,
+      executed: !dryRun && execute,
+      metrics: metricsSummary,
+      plan: {
+        status: result.plan.status,
+        totalValueUsd: result.plan.totalValueUsd,
+        cashUsd: result.plan.cashUsd,
+        investableCashUsd: result.plan.investableCashUsd,
+        plannedSpendUsd: result.plan.plannedSpendUsd,
+        legs: result.plan.legs.map(leg => ({
+          symbol: leg.symbol,
+          notionalUsd: leg.notionalUsd,
+          currentWeight: leg.currentWeight,
+          targetWeight: leg.targetWeight,
+          postBuyEstimatedWeight: leg.postBuyEstimatedWeight,
+          reasonCodes: leg.reasonCodes,
+        })),
+        notes: result.plan.notes,
+      },
     };
-  }
 
-  // Save metadata (only for execute mode or if explicitly requested)
-  if (!dryRun) {
-    const filepath = await saveRunMetadata(metadata, runsDir);
-    log(`\n💾 Run metadata saved: ${filepath}`);
-  }
+    // Add execution details if executed
+    if (result.execution) {
+      metadata.execution = {
+        ordersPlaced: result.execution.ordersPlaced,
+        orderIds: result.execution.orderIds,
+      };
+      metrics.event("orders_executed", { ordersPlaced: result.execution.ordersPlaced });
+    }
 
-  return {
-    ...result,
-    metadata,
-    idempotencyKey,
-  };
+    // Save metadata (only for execute mode or if explicitly requested)
+    if (!dryRun) {
+      logger.info("Saving run metadata");
+      const filepath = await saveRunMetadata(metadata, runsDir);
+      log(`\n💾 Run metadata saved: ${filepath}`);
+      logger.info("Run metadata saved", { filepath });
+    }
+
+    logger.info("Run completed successfully", { durationMs: metricsSummary.durationMs });
+
+    return {
+      ...result,
+      metadata,
+      idempotencyKey,
+    };
+  } catch (error) {
+    metrics.event("error", { error: error.message });
+    logger.error("Run failed", { error: error.message, stack: error.stack });
+    throw error;
+  }
 }
