@@ -1,0 +1,10 @@
+{
+  "name": "@ledgerrun/alpaca",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.js",
+  "bin": {
+    "ledgerrun-alpaca": "./src/cli.js"
+  }
+}

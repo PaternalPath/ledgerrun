@@ -53,8 +53,47 @@ Think of it as an autopilot for discipline, not decision-making.
 
 ## Status
 
-🚧 Early development  
+🚧 Early development
 Initial focus: paper-trading execution loop
+
+---
+
+## M2: Alpaca Paper Broker Adapter
+
+The Alpaca adapter provides integration with Alpaca's paper trading API for testing and development.
+
+### Environment Variables
+
+```bash
+ALPACA_API_KEY       # Your Alpaca API Key (required)
+ALPACA_API_SECRET    # Your Alpaca API Secret (required)
+```
+
+Get your paper trading credentials from: https://app.alpaca.markets/paper/dashboard/overview
+
+### CLI Usage
+
+Fetch current account snapshot:
+```bash
+node packages/alpaca/src/cli.js snapshot
+node packages/alpaca/src/cli.js snapshot VTI VXUS BND
+```
+
+The CLI outputs a JSON snapshot compatible with LedgerRun's core allocation engine.
+
+### Programmatic Usage
+
+```javascript
+import { AlpacaClient, fetchSnapshot } from "@ledgerrun/alpaca";
+
+const client = new AlpacaClient({ paper: true });
+const snapshot = await fetchSnapshot(client, ["VTI", "VXUS", "BND"]);
+// Use snapshot with core allocation engine
+```
+
+### Paper Trading Only
+
+**IMPORTANT**: This adapter is configured for paper trading only. Live trading is not implemented.
 
 ---
 
