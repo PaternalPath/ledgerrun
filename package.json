@@ -6,6 +6,8 @@
   "scripts": {
     "test": "node --test",
     "plan": "node apps/api/src/cli.js plan",
-    "execute": "node apps/api/src/cli.js execute"
+    "execute": "node apps/api/src/cli.js execute",
+    "run": "node apps/api/src/cli.js run",
+    "history": "node apps/api/src/cli.js history"
   }
 }

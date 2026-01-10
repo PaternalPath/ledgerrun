@@ -1,5 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { allocate } from "../../core/src/allocate.js";
+import {
+  generateIdempotencyKey,
+  getDateKey,
+  hashPlan,
+  saveRunMetadata,
+  loadRunMetadata,
+  runExists,
+} from "./persistence.js";
 
 /**
  * Run once: load policy, fetch snapshot, compute allocation plan, and optionally execute.
@@ -81,4 +89,135 @@ export async function runOnce({ policyPath, broker, dryRun = true, execute = fal
   }
 
   return { plan };
+}
+
+/**
+ * Run with idempotency: ensures the same run doesn't execute twice
+ *
+ * @param {Object} options
+ * @param {string} options.policyPath - Path to policy JSON file
+ * @param {Object} options.broker - Broker interface
+ * @param {boolean} options.dryRun - If true, only print plan without executing (default: true)
+ * @param {boolean} options.execute - If true and dryRun is false, execute orders (default: false)
+ * @param {boolean} options.silent - If true, suppress console output (default: false)
+ * @param {string} options.granularity - Idempotency granularity: "daily" or "hourly" (default: "daily")
+ * @param {string} options.runsDir - Directory to store run metadata (default: "./runs")
+ * @param {boolean} options.skipIdempotency - Skip idempotency check (default: false)
+ * @returns {Promise<Object>} The allocation plan result with metadata
+ */
+export async function runWithIdempotency({
+  policyPath,
+  broker,
+  dryRun = true,
+  execute = false,
+  silent = false,
+  granularity = "daily",
+  runsDir = "./runs",
+  skipIdempotency = false,
+}) {
+  const log = silent ? () => {} : console.log;
+
+  // Load policy for idempotency key generation
+  const policyData = await readFile(policyPath, "utf-8");
+  const policy = JSON.parse(policyData);
+
+  // Generate idempotency key
+  const dateKey = getDateKey(new Date(), granularity);
+  const idempotencyKey = generateIdempotencyKey(policy, dateKey);
+
+  log(`🔑 Idempotency Key: ${idempotencyKey}`);
+  log(`   Granularity: ${granularity}`);
+  log(`   Date Key: ${dateKey}`);
+
+  // Check if run already exists (only for execute mode)
+  if (!skipIdempotency && !dryRun && execute) {
+    const exists = await runExists(idempotencyKey, runsDir);
+
+    if (exists) {
+      log("\n⚠️  IDEMPOTENCY CHECK FAILED");
+      log("   A run with this idempotency key already exists.");
+      log("   This prevents duplicate execution for the same policy and time period.");
+
+      const existingRun = await loadRunMetadata(idempotencyKey, runsDir);
+      log(`\n📋 Existing Run Details:`);
+      log(`   Timestamp: ${existingRun.timestamp}`);
+      log(`   Status: ${existingRun.status}`);
+      log(`   Plan Hash: ${existingRun.planHash}`);
+      if (existingRun.execution) {
+        log(`   Orders Placed: ${existingRun.execution.ordersPlaced}`);
+      }
+
+      return {
+        skipped: true,
+        reason: "idempotency",
+        idempotencyKey,
+        existingRun,
+      };
+    }
+
+    log("   ✅ No existing run found - proceeding");
+  }
+
+  // Run the allocation
+  const timestamp = new Date().toISOString();
+  const result = await runOnce({
+    policyPath,
+    broker,
+    dryRun,
+    execute,
+    silent,
+  });
+
+  // Calculate plan hash
+  const planHash = hashPlan(result.plan);
+
+  // Prepare metadata
+  const metadata = {
+    idempotencyKey,
+    timestamp,
+    dateKey,
+    granularity,
+    policyPath,
+    policyName: policy.name,
+    status: result.plan.status,
+    planHash,
+    dryRun,
+    executed: !dryRun && execute,
+    plan: {
+      status: result.plan.status,
+      totalValueUsd: result.plan.totalValueUsd,
+      cashUsd: result.plan.cashUsd,
+      investableCashUsd: result.plan.investableCashUsd,
+      plannedSpendUsd: result.plan.plannedSpendUsd,
+      legs: result.plan.legs.map(leg => ({
+        symbol: leg.symbol,
+        notionalUsd: leg.notionalUsd,
+        currentWeight: leg.currentWeight,
+        targetWeight: leg.targetWeight,
+        postBuyEstimatedWeight: leg.postBuyEstimatedWeight,
+        reasonCodes: leg.reasonCodes,
+      })),
+      notes: result.plan.notes,
+    },
+  };
+
+  // Add execution details if executed
+  if (result.execution) {
+    metadata.execution = {
+      ordersPlaced: result.execution.ordersPlaced,
+      orderIds: result.execution.orderIds,
+    };
+  }
+
+  // Save metadata (only for execute mode or if explicitly requested)
+  if (!dryRun) {
+    const filepath = await saveRunMetadata(metadata, runsDir);
+    log(`\n💾 Run metadata saved: ${filepath}`);
+  }
+
+  return {
+    ...result,
+    metadata,
+    idempotencyKey,
+  };
 }
