@@ -1,0 +1,11 @@
+{
+  "name": "ledgerrun",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "plan": "node apps/api/src/cli.js plan",
+    "execute": "node apps/api/src/cli.js execute"
+  }
+}
