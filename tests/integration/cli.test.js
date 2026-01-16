@@ -120,8 +120,9 @@ test("CLI shows usage for invalid command", async () => {
   const result = await runCLI(["invalid-command"]);
 
   assert.notEqual(result.code, 0, "Should exit with non-zero code");
+  const output = result.stdout + result.stderr;
   assert.ok(
-    result.stdout.includes("Usage") || result.stderr.includes("Usage"),
+    output.includes("USAGE") || output.includes("Usage"),
     "Should show usage information"
   );
 });

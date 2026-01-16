@@ -46,10 +46,63 @@ class MockBroker {
 }
 
 /**
+ * Show help/usage information
+ */
+function showHelp() {
+  console.log(`
+LedgerRun CLI - Policy-driven ETF allocation engine
+
+USAGE:
+  ledgerrun <command> [options]
+
+COMMANDS:
+  plan              Generate allocation plan (dry-run, no execution)
+  execute           Execute allocation (requires --execute flag)
+
+OPTIONS:
+  --policy <path>   Path to policy JSON file (default: policies/core.json)
+  --execute         Execute orders (only with 'execute' command, requires explicit flag)
+  --dry-run         Dry-run mode - no orders executed (default for 'execute')
+  --help, -h        Show this help message
+
+EXAMPLES:
+  # Generate a plan (dry-run)
+  npm run plan
+
+  # Generate a plan with custom policy
+  npm run plan -- --policy policies/aggressive.json
+
+  # Execute with dry-run (safe, no actual orders)
+  npm run execute -- --policy policies/core.json --dry-run
+
+  # Execute orders (REQUIRES --execute flag)
+  npm run execute -- --policy policies/core.json --execute
+
+SAFETY:
+  - Only paper trading is supported (ALPACA_PAPER must be true or unset)
+  - 'execute' command requires explicit --execute flag to place orders
+  - Default behavior is always dry-run (safe)
+
+ENVIRONMENT:
+  ALPACA_PAPER      Must be 'true' or unset (default: true)
+  DEBUG             Set to any value to show full error stack traces
+
+For more information, see: README.md
+`);
+}
+
+/**
  * Parse command line arguments
  */
 function parseArgs() {
   const args = process.argv.slice(2);
+
+  // Check for help flag
+  if (args.includes("--help") || args.includes("-h")) {
+    showHelp();
+    process.exit(0);
+  }
+
   const command = args[0]; // 'plan' or 'execute'
 
   const options = {
@@ -84,15 +137,13 @@ function parseArgs() {
 async function main() {
   const { command, options } = parseArgs();
 
-  console.log("🚀 LedgerRun CLI\n");
-
   if (!command || !["plan", "execute"].includes(command)) {
-    console.error("Usage:");
-    console.error("  npm run plan -- --policy <path>           # Dry run (default)");
-    console.error("  npm run execute -- --policy <path> --execute  # Execute orders (requires --execute flag)");
-    console.error("  npm run execute -- --policy <path> --dry-run  # Dry run only");
+    console.error("❌ ERROR: Invalid or missing command\n");
+    showHelp();
     process.exit(1);
   }
+
+  console.log("🚀 LedgerRun CLI\n");
 
   // Determine execution mode based on command and flags
   if (command === "plan") {
