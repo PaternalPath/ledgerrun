@@ -9,7 +9,7 @@ import { writeFile, rm } from "node:fs/promises";
 function runCLI(args, env = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn("node", ["apps/api/src/cli.js", ...args], {
-      cwd: "/home/user/ledgerrun",
+      cwd: process.cwd(),
       env: { ...process.env, ...env }
     });
 
