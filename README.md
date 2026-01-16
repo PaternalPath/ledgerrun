@@ -1,5 +1,7 @@
 # LedgerRun
 
+[![CI](https://github.com/PaternalPath/ledgerrun/actions/workflows/ci.yml/badge.svg)](https://github.com/PaternalPath/ledgerrun/actions/workflows/ci.yml)
+
 LedgerRun is a policy-driven execution engine for ETF DCA.
 
 You define the rules.
@@ -23,10 +25,10 @@ Think of it as an autopilot for discipline, not decision-making.
 
 ## Core Principles
 
-- **Execution-first**: automation beats intention
-- **Policy-as-code**: rules are explicit, versioned, and enforced
-- **Glass box**: every trade is explainable
-- **Safety by default**: caps, kill switches, paper-first workflows
+- **Execution-first**: Automation beats intention
+- **Policy-as-code**: Rules are explicit, versioned, and enforced
+- **Glass box**: Every trade is explainable with full audit trail
+- **Safety by default**: Paper-only, execute gating, multiple caps, dry-run first
 
 ---
 
@@ -53,8 +55,15 @@ Think of it as an autopilot for discipline, not decision-making.
 
 ## Status
 
-🚧 Early development
-Initial focus: paper-trading execution loop
+**v0.1.0** - Paper trading only
+
+✅ Core allocation logic
+✅ Drift-aware rebalancing
+✅ CLI with safety gating
+✅ Comprehensive test coverage (44 tests)
+✅ Full documentation
+
+⚠️ **Mock broker only** - Real Alpaca integration not yet implemented
 
 ---
 
@@ -70,10 +79,18 @@ cd ledgerrun
 ### Running Tests
 
 ```bash
-npm test
+npm ci          # Install dependencies
+npm test        # Run all tests (44 tests)
+npm run lint    # Run ESLint
 ```
 
 ### Using the CLI
+
+**Get help:**
+
+```bash
+node apps/api/src/cli.js --help
+```
 
 LedgerRun provides two main commands for running allocation strategies:
 
@@ -148,28 +165,217 @@ Policies are defined in JSON files. Example (`policies/core.json`):
 - `drift`: Rebalancing trigger (`"none"` or `"band"` with `maxAbsPct` threshold)
 - `allowMissingPrices`: If true, skip symbols with missing prices instead of failing
 
-### Architecture
+## Public API
+
+LedgerRun is structured as a monorepo with clear API boundaries.
+
+### Core Library (`packages/core`)
+
+Pure allocation logic with zero dependencies.
+
+```javascript
+import { allocate, validatePolicy, validateSnapshot } from "@ledgerrun/core";
+
+// Compute allocation plan
+const plan = allocate(policy, snapshot, options);
+// Returns: { status, legs, notes, totalValueUsd, ... }
+
+// Validate inputs
+validatePolicy(policy);     // Throws on invalid policy
+validateSnapshot(snapshot); // Throws on invalid snapshot
+```
+
+**Key Types:**
+
+```javascript
+// Policy
+{
+  version: 1,
+  name: string,
+  targets: [{ symbol: string, targetWeight: number }],
+  cashBufferPct?: number,
+  minInvestAmountUsd?: number,
+  maxInvestAmountUsd?: number,
+  minOrderUsd?: number,
+  maxOrders?: number,
+  drift: { kind: "none" | "band", maxAbsPct?: number },
+  allowMissingPrices?: boolean
+}
+
+// Snapshot
+{
+  asOfIso: string,
+  cashUsd: number,
+  positions: [{ symbol: string, quantity: number, marketValueUsd: number }],
+  pricesUsd: { [symbol: string]: number }
+}
+
+// Plan Result
+{
+  status: "PLANNED" | "NOOP",
+  policyName: string,
+  legs: [{ symbol, notionalUsd, targetWeight, currentWeight, reasonCodes }],
+  notes: string[],
+  totalValueUsd: number,
+  investableCashUsd: number,
+  plannedSpendUsd: number
+}
+```
+
+### Orchestrator (`packages/orchestrator`)
+
+Execution coordination and broker integration.
+
+```javascript
+import { runOnce } from "@ledgerrun/orchestrator";
+
+// Run allocation cycle
+const result = await runOnce({
+  policyPath: "policies/core.json",
+  broker: brokerInstance,      // Must implement broker interface
+  dryRun: true,                 // Default: true (safe)
+  execute: false,               // Default: false (requires explicit flag)
+  silent: false                 // Default: false (log to console)
+});
+// Returns: { plan, execution? }
+```
+
+**Broker Interface:**
+
+```javascript
+{
+  isPaper(): boolean,
+  getSnapshot(): Promise<Snapshot>,
+  executeOrders(legs): Promise<{ ordersPlaced: number, orderIds: string[] }>
+}
+```
+
+### CLI (`apps/api`)
+
+Command-line interface for end users.
+
+```bash
+# Commands
+npm run plan            # Dry-run planning
+npm run execute         # Execution (requires --execute flag)
+
+# Flags
+--policy <path>         # Policy file path
+--execute               # Enable order execution
+--dry-run               # Force dry-run mode
+--help, -h              # Show help
+```
+
+---
+
+## Architecture
 
 ```
 ledgerrun/
 ├── packages/
-│   ├── core/              # Core allocation logic
-│   │   └── src/
-│   │       ├── allocate.js    # Allocation algorithm
-│   │       └── validate.js    # Policy & snapshot validation
-│   └── orchestrator/      # Execution orchestration
-│       └── src/
-│           └── run.js         # Main run loop
+│   ├── core/                  # Pure allocation logic
+│   │   ├── src/
+│   │   │   ├── allocate.js   # Allocation algorithm
+│   │   │   ├── validate.js   # Input validation
+│   │   │   └── index.js      # Public exports
+│   │   └── package.json
+│   └── orchestrator/          # Execution orchestration
+│       ├── src/
+│       │   └── run.js        # Main run loop
+│       └── package.json
 ├── apps/
-│   └── api/               # CLI application
+│   └── api/                   # CLI application
 │       └── src/
-│           └── cli.js         # Command-line interface
-├── tests/                 # Test suites
-│   ├── core/
-│   └── orchestrator/
-└── policies/              # Policy definitions
+│           └── cli.js        # Command-line interface
+├── tests/                     # Test suites (44 tests)
+│   ├── core/                 # Unit tests
+│   ├── orchestrator/         # Integration tests
+│   └── integration/          # CLI tests
+├── docs/                      # Documentation
+│   ├── PLAN.md               # Upgrade roadmap
+│   ├── architecture.md       # System design
+│   ├── safety-model.md       # Safety invariants
+│   └── runbook.md            # Operational guide
+└── policies/                  # Policy definitions
     └── core.json
 ```
+
+For detailed architecture, see [docs/architecture.md](docs/architecture.md).
+
+---
+
+## Safety Model
+
+LedgerRun is designed with multiple layers of safety protection:
+
+1. **Paper-only enforcement** - Only paper trading supported in v0.1.0
+2. **Execute flag gating** - Orders require explicit `--execute` flag
+3. **Dry-run default** - Default behavior is always safe
+4. **Input validation** - All inputs validated before processing
+5. **Capital controls** - Multiple caps prevent over-investment
+6. **Rounding stability** - Deterministic rounding, no penny drift
+7. **Drift band logic** - Explicit mode switching (pro-rata vs underweights)
+8. **Audit trail** - Every decision explained in plan notes
+
+For full safety details, see [docs/safety-model.md](docs/safety-model.md).
+
+---
+
+## Documentation
+
+- **[README.md](README.md)** - This file (overview and quick start)
+- **[docs/architecture.md](docs/architecture.md)** - System design and data flow
+- **[docs/safety-model.md](docs/safety-model.md)** - Safety invariants and test coverage
+- **[docs/runbook.md](docs/runbook.md)** - Operational guide and troubleshooting
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history
+
+---
+
+## Versioning
+
+LedgerRun follows [Semantic Versioning](https://semver.org/):
+
+- **v0.x.x** - Pre-release (paper trading only, breaking changes may occur)
+- **v1.0.0** - First stable release (when real broker integration is production-ready)
+
+Current version: **v0.1.0**
+
+---
+
+## Development
+
+### Running Locally
+
+```bash
+# Install dependencies
+npm ci
+
+# Run tests
+npm test
+
+# Run linter
+npm run lint
+
+# Test CLI commands
+npm run plan
+npm run execute -- --dry-run
+```
+
+### CI/CD
+
+GitHub Actions runs on every push:
+- Lint check (ESLint)
+- Test suite (44 tests on Node.js 20.x and 22.x)
+- No build step required (runtime JavaScript)
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Make changes and add tests
+4. Ensure `npm test` and `npm run lint` pass
+5. Commit with clear messages
+6. Push and create a pull request
 
 ---
 
@@ -178,3 +384,5 @@ ledgerrun/
 LedgerRun is execution software.
 All investment decisions are made by the user.
 Use at your own risk.
+
+**v0.1.0 is NOT production-ready for real money.**
