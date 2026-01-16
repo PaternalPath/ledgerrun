@@ -8,7 +8,7 @@ function basePolicy(overrides = {}) {
     name: "Core DCA",
     targets: [
       { symbol: "VTI", targetWeight: 0.7 },
-      { symbol: "VXUS", targetWeight: 0.3 },
+      { symbol: "VXUS", targetWeight: 0.3 }
     ],
     cashBufferPct: 0,
     minInvestAmountUsd: 1,
@@ -17,7 +17,7 @@ function basePolicy(overrides = {}) {
     maxOrders: 10,
     drift: { kind: "band", maxAbsPct: 0.03 },
     allowMissingPrices: false,
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -27,10 +27,10 @@ function baseSnapshot(overrides = {}) {
     cashUsd: 100,
     positions: [
       { symbol: "VTI", quantity: 1, marketValueUsd: 250 },
-      { symbol: "VXUS", quantity: 1, marketValueUsd: 60 },
+      { symbol: "VXUS", quantity: 1, marketValueUsd: 60 }
     ],
     pricesUsd: { VTI: 250, VXUS: 60 },
-    ...overrides,
+    ...overrides
   };
 }
 

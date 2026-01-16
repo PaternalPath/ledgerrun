@@ -118,7 +118,7 @@ async function main() {
   const broker = new MockBroker({ isPaper: isPaperMode });
 
   try {
-    const result = await runOnce({
+    const _result = await runOnce({
       policyPath: options.policyPath,
       broker,
       dryRun: options.dryRun,

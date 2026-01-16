@@ -58,7 +58,7 @@ export async function runOnce({ policyPath, broker, dryRun = true, execute = fal
   }
 
   if (plan.notes.length > 0) {
-    log(`\n📝 Notes:`);
+    log("\n📝 Notes:");
     for (const note of plan.notes) {
       log(`   - ${note}`);
     }

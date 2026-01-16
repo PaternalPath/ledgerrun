@@ -42,7 +42,7 @@ export function validatePolicy(policy) {
     ["cashBufferPct", policy.cashBufferPct, 0, 1],
     ["minInvestAmountUsd", policy.minInvestAmountUsd, 0, Number.POSITIVE_INFINITY],
     ["maxInvestAmountUsd", policy.maxInvestAmountUsd, 0, Number.POSITIVE_INFINITY],
-    ["minOrderUsd", policy.minOrderUsd, 0, Number.POSITIVE_INFINITY],
+    ["minOrderUsd", policy.minOrderUsd, 0, Number.POSITIVE_INFINITY]
   ];
 
   for (const [name, value, min, max] of numericFields) {
