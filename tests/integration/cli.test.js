@@ -70,7 +70,9 @@ test("CLI shows error for invalid policy file", async () => {
   const result = await runCLI(["plan", "--policy", "nonexistent.json"]);
 
   assert.notEqual(result.code, 0, "Should exit with non-zero code");
-  assert.ok(result.stdout.includes("Error") || result.stderr.includes("Error"), "Should show error message");
+  const output = result.stdout + result.stderr;
+  assert.ok(output.includes("Error"), "Should show error message");
+  assert.ok(!output.includes("\n    at "), "Should not show stack trace without DEBUG");
 });
 
 test("CLI shows error when ALPACA_PAPER is explicitly false", async () => {
@@ -83,6 +85,15 @@ test("CLI shows error when ALPACA_PAPER is explicitly false", async () => {
     output.toLowerCase().includes("alpaca_paper"),
     "Should mention paper trading requirement"
   );
+});
+
+test("CLI prints stack trace when DEBUG is set", async () => {
+  const result = await runCLI(["plan", "--policy", "nonexistent.json"], { DEBUG: "1" });
+
+  assert.notEqual(result.code, 0, "Should exit with non-zero code");
+  const output = result.stdout + result.stderr;
+  assert.ok(output.includes("Error"), "Should show error message");
+  assert.ok(output.includes("\n    at "), "Should show stack trace when DEBUG is set");
 });
 
 test("CLI plan with custom policy file works", async () => {

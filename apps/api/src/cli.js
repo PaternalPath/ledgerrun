@@ -131,6 +131,33 @@ function parseArgs() {
   return { command, options };
 }
 
+function formatErrorMessage(error) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Unexpected error occurred";
+  }
+}
+
+function reportError(error) {
+  const message = formatErrorMessage(error);
+  console.error(`\n❌ Error: ${message}`);
+
+  if (process.env.DEBUG && error instanceof Error && error.stack) {
+    console.error(error.stack);
+  }
+
+  process.exit(1);
+}
+
 /**
  * Main CLI entry point
  */
@@ -138,8 +165,12 @@ async function main() {
   const { command, options } = parseArgs();
 
   if (!command || !["plan", "execute"].includes(command)) {
-    console.error("❌ ERROR: Invalid or missing command\n");
+    const error = new Error("Invalid or missing command");
+    console.error(`\n❌ Error: ${error.message}\n`);
     showHelp();
+    if (process.env.DEBUG && error.stack) {
+      console.error(error.stack);
+    }
     process.exit(1);
   }
 
@@ -162,8 +193,7 @@ async function main() {
   const isPaperMode = process.env.ALPACA_PAPER === "true" || process.env.ALPACA_PAPER === undefined;
 
   if (!isPaperMode) {
-    console.error("❌ ERROR: Only paper trading is supported. Set ALPACA_PAPER=true");
-    process.exit(1);
+    reportError(new Error("Only paper trading is supported. Set ALPACA_PAPER=true"));
   }
 
   const broker = new MockBroker({ isPaper: isPaperMode });
@@ -179,11 +209,7 @@ async function main() {
     console.log("\n✅ Run complete");
     process.exit(0);
   } catch (error) {
-    console.error("\n❌ Error:", error.message);
-    if (process.env.DEBUG) {
-      console.error(error.stack);
-    }
-    process.exit(1);
+    reportError(error);
   }
 }
 
