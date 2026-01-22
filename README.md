@@ -124,6 +124,12 @@ npm run execute -- --policy policies/core.json --execute
 
 ### Environment Variables
 
+Create a local environment file before running the CLI:
+
+```bash
+cp .env.example .env
+```
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ALPACA_PAPER` | `true` | Must be `true`. Only paper trading is supported in current version. |
