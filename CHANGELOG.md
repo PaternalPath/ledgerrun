@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Audit trail via structured console output
 
 #### Testing
-- 44 comprehensive tests covering all safety invariants
+- 46 comprehensive tests covering all safety invariants
 - Unit tests for core allocation logic
 - Integration tests for orchestrator
 - CLI integration tests in subprocess

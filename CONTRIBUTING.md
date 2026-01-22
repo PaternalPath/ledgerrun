@@ -20,7 +20,7 @@ npm install
 ### Verify Setup
 
 ```bash
-npm test        # Run all tests (44 tests)
+npm test        # Run all tests (46 tests)
 npm run lint    # Run ESLint
 ```
 

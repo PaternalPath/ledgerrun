@@ -60,7 +60,7 @@ Think of it as an autopilot for discipline, not decision-making.
 ✅ Core allocation logic
 ✅ Drift-aware rebalancing
 ✅ CLI with safety gating
-✅ Comprehensive test coverage (44 tests)
+✅ Comprehensive test coverage (46 tests)
 ✅ Full documentation
 
 ⚠️ **Mock broker only** - Real Alpaca integration not yet implemented
@@ -293,7 +293,7 @@ ledgerrun/
 │   └── api/                   # CLI application
 │       └── src/
 │           └── cli.js        # Command-line interface
-├── tests/                     # Test suites (44 tests)
+├── tests/                     # Test suites (46 tests)
 │   ├── core/                 # Unit tests
 │   ├── orchestrator/         # Integration tests
 │   └── integration/          # CLI tests
@@ -371,7 +371,7 @@ npm run execute -- --dry-run
 
 GitHub Actions runs on every push:
 - Lint check (ESLint)
-- Test suite (44 tests on Node.js 20.x and 22.x)
+- Test suite (46 tests on Node.js 20.x and 22.x)
 - No build step required (runtime JavaScript)
 
 ### Contributing
