@@ -69,19 +69,19 @@ Think of it as an autopilot for discipline, not decision-making.
 
 ## Quick Start
 
-### Installation
-
 ```bash
 git clone https://github.com/PaternalPath/ledgerrun.git
 cd ledgerrun
+npm ci
+cp .env.example .env
+npm test
 ```
 
 ### Running Tests
 
 ```bash
-npm ci          # Install dependencies
-npm test        # Run all tests (44 tests)
-npm run lint    # Run ESLint
+npm test
+npm run lint
 ```
 
 ### Using the CLI
