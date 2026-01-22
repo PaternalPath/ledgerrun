@@ -20,8 +20,17 @@ npm install
 ### Verify Setup
 
 ```bash
-npm test        # Run all tests (45 tests)
+npm test        # Run all tests (44 tests)
 npm run lint    # Run ESLint
+```
+
+### Common Scripts
+
+```bash
+npm test        # Run the full test suite
+npm run lint    # Run ESLint across the repo
+npm run plan    # Dry-run a plan (uses mock broker)
+npm run execute # Execute flow (requires --execute flag)
 ```
 
 ## Development Workflow
@@ -80,7 +89,7 @@ test: add validation tests for negative weights
 - Keep PRs focused on a single change
 - Include tests for new functionality
 - Update documentation if needed
-- Ensure CI passes before requesting review
+- Ensure CI passes before requesting review (lint + tests)
 - Link related issues in the PR description
 
 ## Project Structure
