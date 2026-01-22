@@ -14,9 +14,16 @@ If you discover a security vulnerability in LedgerRun, please report it responsi
 
 ### How to Report
 
-1. Email the maintainers with details of the vulnerability
-2. Include steps to reproduce the issue
-3. Provide any relevant logs or screenshots (redact sensitive data)
+**Preferred:** Open a private report via GitHub Security Advisories:  
+https://github.com/PaternalPath/ledgerrun/security/advisories/new
+
+**Alternate (if you cannot use GitHub):** Email the maintainers with details of the vulnerability.
+
+Please include:
+
+1. Steps to reproduce the issue
+2. Expected vs. actual behavior
+3. Any relevant logs or screenshots (redact sensitive data)
 
 ### What to Expect
 
