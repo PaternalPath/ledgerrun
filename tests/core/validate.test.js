@@ -237,6 +237,19 @@ test("validateSnapshot - rejects position with negative marketValueUsd", () => {
   assert.throws(() => validateSnapshot(snapshot), /Invalid marketValueUsd/);
 });
 
+test("validateSnapshot - rejects invalid price entries", () => {
+  const snapshot = {
+    asOfIso: new Date().toISOString(),
+    cashUsd: 100,
+    positions: [],
+    pricesUsd: {
+      VTI: "not-a-number"
+    }
+  };
+
+  assert.throws(() => validateSnapshot(snapshot), /Invalid price for VTI/);
+});
+
 test("validateSnapshot - accepts valid snapshot", () => {
   const snapshot = {
     asOfIso: new Date().toISOString(),

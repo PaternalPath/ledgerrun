@@ -80,6 +80,15 @@ export function validateSnapshot(snapshot) {
     throw new Error("Snapshot.pricesUsd must be an object map of symbol->price.");
   }
 
+  for (const [symbol, price] of Object.entries(snapshot.pricesUsd)) {
+    if (!symbol || typeof symbol !== "string") {
+      throw new Error("Snapshot.pricesUsd keys must be symbols.");
+    }
+    if (!isFiniteNumber(price) || price <= 0) {
+      throw new Error(`Invalid price for ${symbol}.`);
+    }
+  }
+
   for (const p of snapshot.positions) {
     if (!p.symbol || typeof p.symbol !== "string") throw new Error("Each position must have a symbol.");
     if (!isFiniteNumber(p.quantity) || p.quantity < 0) throw new Error(`Invalid quantity for ${p.symbol}.`);
