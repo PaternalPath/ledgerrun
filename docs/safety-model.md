@@ -217,11 +217,11 @@ All safety invariants have explicit test coverage:
 | Execute gating | 4 | 100% |
 | Dry-run safety | 3 | 100% |
 | Missing prices | 2 | 100% |
-| Input validation | 14 | 100% |
+| Input validation | 22 | 100% |
 | Capital controls | 5 | 100% |
 | Rounding | 1 | 100% |
 | Drift logic | 2 | 100% |
-| **Total** | **44** | **100%** |
+| **Total** | **46** | **100%** |
 
 ---
 
