@@ -270,6 +270,7 @@ npm run execute         # Execution (requires --execute flag)
 --execute               # Enable order execution
 --dry-run               # Force dry-run mode
 --help, -h              # Show help
+--version, -v           # Show version number
 ```
 
 ---
