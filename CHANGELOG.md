@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `--version` / `-v` CLI flag to display version number
+- Version now shown in `--help` output and startup banner
+
 ## [0.1.0] - 2026-01-16
 
 ### Added

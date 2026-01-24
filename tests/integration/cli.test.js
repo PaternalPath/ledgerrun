@@ -137,3 +137,19 @@ test("CLI shows usage for invalid command", async () => {
     "Should show usage information"
   );
 });
+
+test("CLI --version shows version and exits 0", async () => {
+  const result = await runCLI(["--version"]);
+
+  assert.equal(result.code, 0, "Should exit with code 0");
+  assert.ok(result.stdout.includes("ledgerrun v"), "Should show version prefix");
+  assert.match(result.stdout.trim(), /^ledgerrun v\d+\.\d+\.\d+$/, "Should match version format");
+});
+
+test("CLI -v short flag shows version and exits 0", async () => {
+  const result = await runCLI(["-v"]);
+
+  assert.equal(result.code, 0, "Should exit with code 0");
+  assert.ok(result.stdout.includes("ledgerrun v"), "Should show version prefix");
+  assert.match(result.stdout.trim(), /^ledgerrun v\d+\.\d+\.\d+$/, "Should match version format");
+});
