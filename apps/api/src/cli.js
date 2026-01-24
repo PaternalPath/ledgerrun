@@ -1,6 +1,17 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { runOnce } from "../../../packages/orchestrator/src/run.js";
+
+// Get version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(
+  readFileSync(join(__dirname, "../../../package.json"), "utf-8")
+);
+const VERSION = packageJson.version;
 
 /**
  * Mock broker for testing and development
@@ -46,11 +57,18 @@ class MockBroker {
 }
 
 /**
+ * Show version information
+ */
+function showVersion() {
+  console.log(`ledgerrun v${VERSION}`);
+}
+
+/**
  * Show help/usage information
  */
 function showHelp() {
   console.log(`
-LedgerRun CLI - Policy-driven ETF allocation engine
+LedgerRun CLI v${VERSION} - Policy-driven ETF allocation engine
 
 USAGE:
   ledgerrun <command> [options]
@@ -64,6 +82,7 @@ OPTIONS:
   --execute         Execute orders (only with 'execute' command, requires explicit flag)
   --dry-run         Dry-run mode - no orders executed (default for 'execute')
   --help, -h        Show this help message
+  --version, -v     Show version number
 
 EXAMPLES:
   # Generate a plan (dry-run)
@@ -100,6 +119,12 @@ function parseArgs() {
   // Check for help flag
   if (args.includes("--help") || args.includes("-h")) {
     showHelp();
+    process.exit(0);
+  }
+
+  // Check for version flag
+  if (args.includes("--version") || args.includes("-v")) {
+    showVersion();
     process.exit(0);
   }
 
@@ -174,7 +199,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("🚀 LedgerRun CLI\n");
+  console.log(`🚀 LedgerRun CLI v${VERSION}\n`);
 
   // Determine execution mode based on command and flags
   if (command === "plan") {
