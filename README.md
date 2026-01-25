@@ -280,7 +280,7 @@ Command-line interface for end users.
 # Commands
 npm run plan            # Dry-run planning
 npm run execute         # Execution (requires --execute flag)
-node apps/api/src/cli.js validate --policy <path>  # Validate policy
+npm run validate        # Validate policy file
 
 # Flags
 --policy <path>         # Policy file path
