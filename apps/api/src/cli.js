@@ -3,7 +3,9 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { readFile } from "node:fs/promises";
 import { runOnce } from "../../../packages/orchestrator/src/run.js";
+import { validatePolicy } from "../../../packages/core/src/validate.js";
 
 // Get version from package.json
 const __filename = fileURLToPath(import.meta.url);
@@ -76,6 +78,7 @@ USAGE:
 COMMANDS:
   plan              Generate allocation plan (dry-run, no execution)
   execute           Execute allocation (requires --execute flag)
+  validate          Validate a policy file (no execution)
 
 OPTIONS:
   --policy <path>   Path to policy JSON file (default: policies/core.json)
@@ -201,7 +204,7 @@ function reportError(error, jsonMode = false) {
 async function main() {
   const { command, options } = parseArgs();
 
-  if (!command || !["plan", "execute"].includes(command)) {
+  if (!command || !["plan", "execute", "validate"].includes(command)) {
     const error = new Error("Invalid or missing command");
     if (options.json) {
       console.log(JSON.stringify({ success: false, error: error.message }));
@@ -217,6 +220,29 @@ async function main() {
 
   if (!options.json && !options.quiet) {
     console.log(`🚀 LedgerRun CLI v${VERSION}\n`);
+  }
+
+  // Handle validate command separately (no broker needed)
+  if (command === "validate") {
+    try {
+      const policyData = await readFile(options.policyPath, "utf-8");
+      const policy = JSON.parse(policyData);
+      validatePolicy(policy);
+
+      if (options.json) {
+        console.log(JSON.stringify({
+          success: true,
+          command: "validate",
+          policy: options.policyPath,
+          valid: true
+        }));
+      } else if (!options.quiet) {
+        console.log(`✅ Policy is valid: ${options.policyPath}`);
+      }
+      process.exit(0);
+    } catch (error) {
+      reportError(error, options.json);
+    }
   }
 
   // Determine execution mode based on command and flags
