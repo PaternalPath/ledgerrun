@@ -269,6 +269,7 @@ npm run execute         # Execution (requires --execute flag)
 --policy <path>         # Policy file path
 --execute               # Enable order execution
 --dry-run               # Force dry-run mode
+--json                  # Output result as JSON (for scripting/CI)
 --help, -h              # Show help
 --version, -v           # Show version number
 ```

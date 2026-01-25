@@ -173,3 +173,36 @@ test("CLI -h short flag shows usage and exits 0", async () => {
   assert.ok(result.stdout.includes("USAGE:"), "Should show usage section");
   assert.ok(result.stdout.includes("COMMANDS:"), "Should show commands section");
 });
+
+test("CLI --json outputs valid JSON for plan command", async () => {
+  const result = await runCLI(["plan", "--json"]);
+
+  assert.equal(result.code, 0, "Should exit with code 0");
+
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.success, true, "Should indicate success");
+  assert.equal(output.command, "plan", "Should include command");
+  assert.equal(output.dryRun, true, "Should indicate dry run");
+  assert.ok(output.plan, "Should include plan object");
+  assert.ok(output.plan.status, "Plan should have status");
+  assert.ok(Array.isArray(output.plan.legs), "Plan should have legs array");
+});
+
+test("CLI --json outputs valid JSON for errors", async () => {
+  const result = await runCLI(["plan", "--policy", "nonexistent.json", "--json"]);
+
+  assert.notEqual(result.code, 0, "Should exit with non-zero code");
+
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.success, false, "Should indicate failure");
+  assert.ok(output.error, "Should include error message");
+});
+
+test("CLI --json suppresses human-readable output", async () => {
+  const result = await runCLI(["plan", "--json"]);
+
+  assert.equal(result.code, 0, "Should exit with code 0");
+  assert.ok(!result.stdout.includes("🚀"), "Should not include emoji header");
+  assert.ok(!result.stdout.includes("LedgerRun CLI"), "Should not include CLI header");
+  assert.ok(result.stdout.startsWith("{"), "Output should start with JSON object");
+});

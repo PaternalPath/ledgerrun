@@ -81,6 +81,7 @@ OPTIONS:
   --policy <path>   Path to policy JSON file (default: policies/core.json)
   --execute         Execute orders (only with 'execute' command, requires explicit flag)
   --dry-run         Dry-run mode - no orders executed (default for 'execute')
+  --json            Output result as JSON (for scripting/CI)
   --help, -h        Show this help message
   --version, -v     Show version number
 
@@ -133,7 +134,8 @@ function parseArgs() {
   const options = {
     policyPath: "policies/core.json", // default
     dryRun: true,
-    execute: false
+    execute: false,
+    json: false
   };
 
   for (let i = 1; i < args.length; i++) {
@@ -150,6 +152,8 @@ function parseArgs() {
       options.execute = true;
     } else if (arg === "--no-dry-run") {
       options.dryRun = false;
+    } else if (arg === "--json") {
+      options.json = true;
     }
   }
 
@@ -172,12 +176,16 @@ function formatErrorMessage(error) {
   }
 }
 
-function reportError(error) {
+function reportError(error, jsonMode = false) {
   const message = formatErrorMessage(error);
-  console.error(`\n❌ Error: ${message}`);
 
-  if (process.env.DEBUG && error instanceof Error && error.stack) {
-    console.error(error.stack);
+  if (jsonMode) {
+    console.log(JSON.stringify({ success: false, error: message }));
+  } else {
+    console.error(`\n❌ Error: ${message}`);
+    if (process.env.DEBUG && error instanceof Error && error.stack) {
+      console.error(error.stack);
+    }
   }
 
   process.exit(1);
@@ -191,15 +199,21 @@ async function main() {
 
   if (!command || !["plan", "execute"].includes(command)) {
     const error = new Error("Invalid or missing command");
-    console.error(`\n❌ Error: ${error.message}\n`);
-    showHelp();
-    if (process.env.DEBUG && error.stack) {
-      console.error(error.stack);
+    if (options.json) {
+      console.log(JSON.stringify({ success: false, error: error.message }));
+    } else {
+      console.error(`\n❌ Error: ${error.message}\n`);
+      showHelp();
+      if (process.env.DEBUG && error.stack) {
+        console.error(error.stack);
+      }
     }
     process.exit(1);
   }
 
-  console.log(`🚀 LedgerRun CLI v${VERSION}\n`);
+  if (!options.json) {
+    console.log(`🚀 LedgerRun CLI v${VERSION}\n`);
+  }
 
   // Determine execution mode based on command and flags
   if (command === "plan") {
@@ -218,23 +232,33 @@ async function main() {
   const isPaperMode = process.env.ALPACA_PAPER === "true" || process.env.ALPACA_PAPER === undefined;
 
   if (!isPaperMode) {
-    reportError(new Error("Only paper trading is supported. Set ALPACA_PAPER=true"));
+    reportError(new Error("Only paper trading is supported. Set ALPACA_PAPER=true"), options.json);
   }
 
   const broker = new MockBroker({ isPaper: isPaperMode });
 
   try {
-    const _result = await runOnce({
+    const result = await runOnce({
       policyPath: options.policyPath,
       broker,
       dryRun: options.dryRun,
-      execute: options.execute
+      execute: options.execute,
+      silent: options.json
     });
 
-    console.log("\n✅ Run complete");
+    if (options.json) {
+      console.log(JSON.stringify({
+        success: true,
+        command,
+        dryRun: options.dryRun,
+        ...result
+      }));
+    } else {
+      console.log("\n✅ Run complete");
+    }
     process.exit(0);
   } catch (error) {
-    reportError(error);
+    reportError(error, options.json);
   }
 }
 
