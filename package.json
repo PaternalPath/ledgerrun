@@ -7,7 +7,8 @@
     "test": "node --test",
     "lint": "eslint .",
     "plan": "node apps/api/src/cli.js plan",
-    "execute": "node apps/api/src/cli.js execute"
+    "execute": "node apps/api/src/cli.js execute",
+    "validate": "node apps/api/src/cli.js validate"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
