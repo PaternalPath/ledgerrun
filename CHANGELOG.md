@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--version` / `-v` CLI flag to display version number
 - Version now shown in `--help` output and startup banner
 - `--json` CLI flag for machine-readable JSON output (for scripting/CI)
+- `--quiet` / `-q` CLI flag for minimal output (suppresses banner and details)
 - Policy templates: aggressive, balanced, conservative strategies
 
 ## [0.1.0] - 2026-01-16

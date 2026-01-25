@@ -206,3 +206,17 @@ test("CLI --json suppresses human-readable output", async () => {
   assert.ok(!result.stdout.includes("LedgerRun CLI"), "Should not include CLI header");
   assert.ok(result.stdout.startsWith("{"), "Output should start with JSON object");
 });
+
+test("CLI --quiet suppresses all output", async () => {
+  const result = await runCLI(["plan", "--quiet"]);
+
+  assert.equal(result.code, 0, "Should exit with code 0");
+  assert.equal(result.stdout.trim(), "", "Should produce no stdout");
+});
+
+test("CLI -q short flag suppresses all output", async () => {
+  const result = await runCLI(["plan", "-q"]);
+
+  assert.equal(result.code, 0, "Should exit with code 0");
+  assert.equal(result.stdout.trim(), "", "Should produce no stdout");
+});

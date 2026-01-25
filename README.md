@@ -286,6 +286,7 @@ npm run execute         # Execution (requires --execute flag)
 --execute               # Enable order execution
 --dry-run               # Force dry-run mode
 --json                  # Output result as JSON (for scripting/CI)
+--quiet, -q             # Minimal output (suppress banner and details)
 --help, -h              # Show help
 --version, -v           # Show version number
 ```

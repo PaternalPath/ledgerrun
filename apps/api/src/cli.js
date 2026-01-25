@@ -82,6 +82,7 @@ OPTIONS:
   --execute         Execute orders (only with 'execute' command, requires explicit flag)
   --dry-run         Dry-run mode - no orders executed (default for 'execute')
   --json            Output result as JSON (for scripting/CI)
+  --quiet, -q       Minimal output (suppress banner and details)
   --help, -h        Show this help message
   --version, -v     Show version number
 
@@ -135,7 +136,8 @@ function parseArgs() {
     policyPath: "policies/core.json", // default
     dryRun: true,
     execute: false,
-    json: false
+    json: false,
+    quiet: false
   };
 
   for (let i = 1; i < args.length; i++) {
@@ -154,6 +156,8 @@ function parseArgs() {
       options.dryRun = false;
     } else if (arg === "--json") {
       options.json = true;
+    } else if (arg === "--quiet" || arg === "-q") {
+      options.quiet = true;
     }
   }
 
@@ -211,7 +215,7 @@ async function main() {
     process.exit(1);
   }
 
-  if (!options.json) {
+  if (!options.json && !options.quiet) {
     console.log(`🚀 LedgerRun CLI v${VERSION}\n`);
   }
 
@@ -243,7 +247,7 @@ async function main() {
       broker,
       dryRun: options.dryRun,
       execute: options.execute,
-      silent: options.json
+      silent: options.json || options.quiet
     });
 
     if (options.json) {
@@ -253,7 +257,7 @@ async function main() {
         dryRun: options.dryRun,
         ...result
       }));
-    } else {
+    } else if (!options.quiet) {
       console.log("\n✅ Run complete");
     }
     process.exit(0);
