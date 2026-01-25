@@ -220,3 +220,34 @@ test("CLI -q short flag suppresses all output", async () => {
   assert.equal(result.code, 0, "Should exit with code 0");
   assert.equal(result.stdout.trim(), "", "Should produce no stdout");
 });
+
+test("CLI validate command validates policy file", async () => {
+  const result = await runCLI(["validate", "--policy", "policies/core.json"]);
+
+  assert.equal(result.code, 0, "Should exit with code 0");
+  assert.ok(result.stdout.includes("Policy is valid"), "Should confirm valid policy");
+});
+
+test("CLI validate command fails for invalid policy", async () => {
+  const result = await runCLI(["validate", "--policy", "nonexistent.json"]);
+
+  assert.notEqual(result.code, 0, "Should exit with non-zero code");
+});
+
+test("CLI validate command with --json outputs JSON", async () => {
+  const result = await runCLI(["validate", "--policy", "policies/core.json", "--json"]);
+
+  assert.equal(result.code, 0, "Should exit with code 0");
+
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.success, true, "Should indicate success");
+  assert.equal(output.command, "validate", "Should include command");
+  assert.equal(output.valid, true, "Should indicate policy is valid");
+});
+
+test("CLI validate command with --quiet produces no output", async () => {
+  const result = await runCLI(["validate", "--policy", "policies/core.json", "--quiet"]);
+
+  assert.equal(result.code, 0, "Should exit with code 0");
+  assert.equal(result.stdout.trim(), "", "Should produce no stdout");
+});
