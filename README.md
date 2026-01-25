@@ -171,6 +171,22 @@ Policies are defined in JSON files. Example (`policies/core.json`):
 - `drift`: Rebalancing trigger (`"none"` or `"band"` with `maxAbsPct` threshold)
 - `allowMissingPrices`: If true, skip symbols with missing prices instead of failing
 
+### Policy Templates
+
+Pre-built policies for common investment strategies:
+
+| Policy | File | Description |
+|--------|------|-------------|
+| **Core DCA** | `policies/core.json` | Default 70/30 US/International equity |
+| **Aggressive Growth** | `policies/aggressive.json` | 100% equity with emerging markets |
+| **Balanced 60/40** | `policies/balanced.json` | Classic 60% equity / 40% bond split |
+| **Conservative Income** | `policies/conservative.json` | Bond-heavy for capital preservation |
+
+```bash
+# Use a specific policy template
+npm run plan -- --policy policies/aggressive.json
+```
+
 ## Public API
 
 LedgerRun is structured as a monorepo with clear API boundaries.

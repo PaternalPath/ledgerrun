@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "Aggressive Growth",
+  "description": "100% equity allocation for maximum growth potential. Higher volatility, suitable for long time horizons.",
+  "targets": [
+    { "symbol": "VTI", "targetWeight": 0.60 },
+    { "symbol": "VXUS", "targetWeight": 0.25 },
+    { "symbol": "VWO", "targetWeight": 0.15 }
+  ],
+  "cashBufferPct": 0.0,
+  "minInvestAmountUsd": 1,
+  "maxInvestAmountUsd": 10000,
+  "minOrderUsd": 1,
+  "maxOrders": 10,
+  "drift": { "kind": "band", "maxAbsPct": 0.05 },
+  "allowMissingPrices": false
+}
