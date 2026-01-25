@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "Conservative Income",
+  "description": "Bond-heavy allocation for capital preservation and income. Lower volatility, suitable for shorter time horizons.",
+  "targets": [
+    { "symbol": "BND", "targetWeight": 0.50 },
+    { "symbol": "VTI", "targetWeight": 0.30 },
+    { "symbol": "VXUS", "targetWeight": 0.20 }
+  ],
+  "cashBufferPct": 0.02,
+  "minInvestAmountUsd": 1,
+  "maxInvestAmountUsd": 10000,
+  "minOrderUsd": 1,
+  "maxOrders": 10,
+  "drift": { "kind": "band", "maxAbsPct": 0.03 },
+  "allowMissingPrices": false
+}

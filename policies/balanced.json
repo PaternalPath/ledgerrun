@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "name": "Balanced 60/40",
+  "description": "Classic 60% equity / 40% bond allocation. Moderate risk with diversification across asset classes.",
+  "targets": [
+    { "symbol": "VTI", "targetWeight": 0.36 },
+    { "symbol": "VXUS", "targetWeight": 0.24 },
+    { "symbol": "BND", "targetWeight": 0.28 },
+    { "symbol": "BNDX", "targetWeight": 0.12 }
+  ],
+  "cashBufferPct": 0.01,
+  "minInvestAmountUsd": 1,
+  "maxInvestAmountUsd": 10000,
+  "minOrderUsd": 1,
+  "maxOrders": 10,
+  "drift": { "kind": "band", "maxAbsPct": 0.03 },
+  "allowMissingPrices": false
+}
