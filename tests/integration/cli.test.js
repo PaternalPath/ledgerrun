@@ -153,3 +153,23 @@ test("CLI -v short flag shows version and exits 0", async () => {
   assert.ok(result.stdout.includes("ledgerrun v"), "Should show version prefix");
   assert.match(result.stdout.trim(), /^ledgerrun v\d+\.\d+\.\d+$/, "Should match version format");
 });
+
+test("CLI --help shows usage and exits 0", async () => {
+  const result = await runCLI(["--help"]);
+
+  assert.equal(result.code, 0, "Should exit with code 0");
+  assert.ok(result.stdout.includes("LedgerRun CLI"), "Should show CLI header");
+  assert.ok(result.stdout.includes("USAGE:"), "Should show usage section");
+  assert.ok(result.stdout.includes("COMMANDS:"), "Should show commands section");
+  assert.ok(result.stdout.includes("OPTIONS:"), "Should show options section");
+  assert.ok(result.stdout.includes("EXAMPLES:"), "Should show examples section");
+  assert.ok(result.stdout.includes("--version"), "Should document --version flag");
+});
+
+test("CLI -h short flag shows usage and exits 0", async () => {
+  const result = await runCLI(["-h"]);
+
+  assert.equal(result.code, 0, "Should exit with code 0");
+  assert.ok(result.stdout.includes("USAGE:"), "Should show usage section");
+  assert.ok(result.stdout.includes("COMMANDS:"), "Should show commands section");
+});
